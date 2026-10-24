@@ -4,14 +4,22 @@ import os, struct, subprocess, time
 
 DEV = os.environ.get("TOUCH_DEV", "/dev/input/event3")
 ENV = dict(os.environ, DISPLAY=":1")
-EXIT_FLAG = "/tmp/alpine-exit"
+WAKE = "/tmp/bridge-wake"
 
 def xdo(*args):
     subprocess.run(["xdotool"] + list(args), env=ENV,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+def wake():
+    try:
+        fd = os.open(WAKE, os.O_WRONLY | os.O_NONBLOCK)
+        os.write(fd, b"1")
+        os.close(fd)
+    except OSError:
+        pass
+
 def log(msg):
-    print(msg, flush=True)
+    print("%.3f %s" % (time.time(), msg), flush=True)
 
 def toggle_keyboard():
     if not subprocess.run(["sh", "-c", "command -v xvkbd >/dev/null"],
@@ -71,19 +79,19 @@ while True:
                 dx, dy = x - sx, y - sy
                 if abs(dx) < 30 and abs(dy) < 30:
                     if dt >= 1.5 and x < 120 and y < 120:
-                        open(EXIT_FLAG, "w").write("1")
                         log("exit requested")
                     elif dt < 1.5:
                         if x < 120 and y > 2360:
                             toggle_keyboard()
                         else:
-                            xdo("mousemove", str(x), str(y))
-                            xdo("click", "1")
+                            xdo("mousemove", str(x), str(y), "click", "1")
+                            wake()
                             log("tap %d %d" % (x, y))
                 elif abs(dy) > 100 and abs(dx) < 90:
                     n = max(1, abs(dy) // 120)
                     btn = "5" if dy < 0 else "4"
                     for _ in range(n):
                         xdo("click", btn)
+                    wake()
                     log("scroll %s x%d" % (btn, n))
     time.sleep(0.005)

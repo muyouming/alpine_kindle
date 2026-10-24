@@ -17,7 +17,8 @@ else
     # Bridge mode: the Scribe root is 8-bit; Xephyr 21.1.23 falls back
     # to the host root depth even when a 32-bit TrueColor visual exists.
     echo "startgui: bridge mode ${HOSTSIZE}x24 (host depth $HOSTDEPTH)"
-    Xvfb :1 -screen 0 ${HOSTSIZE}x24 -ac -nolisten tcp >/tmp/xvfb.log 2>&1 &
+    rm -f /dev/shm/Xvfb_screen0 /tmp/bridge-wake
+    Xvfb :1 -screen 0 ${HOSTSIZE}x24 -ac -nolisten tcp -fbdir /dev/shm >/tmp/xvfb.log 2>&1 &
     XVFBPID=$!
     sleep 2
     su alpine -c "export DISPLAY=:1 XDG_RUNTIME_DIR=/tmp/runtime-alpine ICEAUTHORITY=/tmp/runtime-alpine/ICEauthority; dbus-run-session -- mate-session" >/tmp/mate.log 2>&1 &
@@ -30,4 +31,5 @@ else
     wait $MATEPID
     kill $BRIDGEPID $TOUCHPID $XVFBPID 2>/dev/null || true
     killall Xvfb 2>/dev/null || true
+    rm -f /dev/shm/Xvfb_screen0
 fi

@@ -31,7 +31,7 @@ bit screens (tested), so there is no usable nested 24/32-bit screen.
 This image therefore uses:
 
 - `Xvfb :1 -screen 0 1860x2480x24`
-- `bridge.py`: `xwd` capture -> grayscale -> `/dev/fb0` -> `fbink -W GC16`
+- `bridge.py`: reads the Xvfb `-fbdir` XWD file, diffs the changed rectangle, writes `/dev/fb0`, then refreshes with fast `A2` (idle full `GC16`)
 - `touch.py`: `/dev/input/event3` (`pt_mt`) -> `xdotool` on `:1`
 - `startgui.sh`: Xephyr mode when `:0` is 24/32-bit, bridge mode otherwise
 
@@ -82,6 +82,19 @@ The bridge is therefore a compatibility layer for modern Chromium dropping
 surface. Stock Xephyr 21.1.23 still cannot use the Scribe's depth-32 TrueColor
 visual for its nested screen (16/24/32 requests all fall back to depth 8),
 so Xvfb + framebuffer is the working path for Chromium 149.
+
+## Performance
+
+Bridge mode is optimized for click latency:
+
+- Reads Xvfb's `-fbdir /dev/shm/Xvfb_screen0` directly (an XWD file: 160-byte header + 256*12 colormap, pixel offset 3232) instead of an 18 MB `xwd` round-trip. Capture is ~0.10-0.15 s instead of ~1 s.
+- Dirty-rectangle diff + `fbink -W A2` partial refresh (~0.01 s command time); a full `GC16` runs after 2 s of idle to clear ghosting.
+- `touch.py` wakes the bridge through `/tmp/bridge-wake` (FIFO), so there is no 1 s polling delay.
+- Panel clock seconds are disabled, avoiding a refresh every second.
+- CPU governor is set to `performance` while Alpine runs; Chromium uses low-end flags (`--disable-gpu`, one renderer, site isolation off, small caches).
+- Measured tap at (250,1120): touch event logged 0.23 s after injection, bridge A2 refresh 0.22 s later (~0.45 s end-to-end including injection). Previously the xwd + 1 s sleep + full GC16 path took 2-3 s. Page-load A2 refresh is ~0.01 s.
+
+See `screenshot-perf.png`.
 
 ## Build
 
@@ -134,13 +147,13 @@ Default user: `alpine` / `alpine`. The text shell is still available via
 
 ## Library launcher
 
-`Alpine.sh` is a KMC shell-integration scriptlet. Install it with its cover:
+`launcher/Alpine.sh` is a KMC shell-integration scriptlet. Install it with its cover:
 
 ```sh
-scp -P 2022 Alpine.sh root@<kindle>:/mnt/us/documents/
+scp -P 2022 launcher/Alpine.sh root@<kindle>:/mnt/us/documents/
 ssh -p 2022 root@<kindle> \
   'mkdir -p /mnt/us/documents/Alpine.sh.sdr'
-scp -P 2022 Alpine.sh.sdr/icon.png \
+scp -P 2022 launcher/Alpine.sh.sdr/icon.png \
   root@<kindle>:/mnt/us/documents/Alpine.sh.sdr/
 ssh -p 2022 root@<kindle> \
   'chmod 777 /mnt/us/documents/Alpine.sh /mnt/us/documents/Alpine.sh.sdr/icon.png'
@@ -160,7 +173,7 @@ It appears in the library as **Alpine Linux** and toggles
   touch re-enabled, `lab126_gui` running
 - start menu icons render with the `ContrastHigh` icon theme
 
-See `screenshot-final.png`, `screenshot-menu.png` and `launcher-tile.png`.
+See `screenshot-final.png`, `screenshot-menu.png`, `screenshot-perf.png` and `launcher-tile.png`.
 
 ## Credits
 

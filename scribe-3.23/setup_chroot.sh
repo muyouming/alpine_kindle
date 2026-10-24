@@ -55,6 +55,9 @@ ls -la .config | head
 echo "### dconf"
 su - alpine -c 'dbus-run-session -- sh -c "dconf load /org/mate/ < ~/.config/org_mate.dconf.dump && dconf load /org/onboard/ < ~/.config/org_onboard.dconf.dump && echo dconf-ok"'
 
+echo "### panel clock: avoid a bridge refresh every second"
+su - alpine -c 'dbus-run-session -- dconf write /org/mate/panel/objects/clock/prefs/show-seconds false'
+
 echo "### icon theme fix"
 # The upstream dotfiles set HighContrast, which has no index.theme and only a
 # handful of icons. ContrastHigh is the complete high-contrast MATE theme and
@@ -72,7 +75,7 @@ cat > /etc/chromium/chromium.conf <<'CHROMIUMCONF'
 
 # Options to pass to chromium.
 mouseid="$(env DISPLAY=:1 xinput list --id-only "Xephyr virtual mouse" 2>/dev/null)"
-CHROMIUM_FLAGS='--force-device-scale-factor=2 --pull-to-refresh=1 --disable-smooth-scrolling --enable-low-end-device-mode --disable-login-animations --disable-modal-animations --wm-window-animations-disabled --no-first-run --no-default-browser-check --start-maximized --user-agent=Mozilla%2F5.0%20%28Linux%3B%20Android%207.0%3B%20SM-G930V%20Build%2FNRD90M%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F59.0.3071.125%20Mobile%20Safari%2F537.36'
+CHROMIUM_FLAGS='--force-device-scale-factor=2 --pull-to-refresh=1 --disable-smooth-scrolling --enable-low-end-device-mode --disable-gpu --renderer-process-limit=1 --process-per-site --disable-features=CalculateNativeWinOcclusion,Translate,OptimizationHints,MediaRouter,GlobalMediaControls,IsolateOrigins,site-per-process --disable-background-networking --disable-component-update --disable-sync --disable-default-apps --disable-breakpad --disk-cache-size=67108864 --media-cache-size=33554432 --disable-login-animations --disable-modal-animations --wm-window-animations-disabled --no-first-run --no-default-browser-check --start-maximized --user-agent=Mozilla%2F5.0%20%28Linux%3B%20Android%207.0%3B%20SM-G930V%20Build%2FNRD90M%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F59.0.3071.125%20Mobile%20Safari%2F537.36'
 [ -n "$mouseid" ] && CHROMIUM_FLAGS="$CHROMIUM_FLAGS --touch-devices=$mouseid"
 CHROMIUMCONF
 
