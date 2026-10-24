@@ -111,7 +111,7 @@ It appears in the library as **Alpine Linux** and toggles
 - `stop alpine` -> no mounts, no loop devices, no residual processes,
   touch re-enabled, `lab126_gui` running
 
-See `screenshot-final.png` and `screenshot-home.png`.
+See `screenshot-final.png` and `launcher-tile.png`.
 
 ## Credits
 
