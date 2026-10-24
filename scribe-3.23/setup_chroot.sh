@@ -55,6 +55,12 @@ ls -la .config | head
 echo "### dconf"
 su - alpine -c 'dbus-run-session -- sh -c "dconf load /org/mate/ < ~/.config/org_mate.dconf.dump && dconf load /org/onboard/ < ~/.config/org_onboard.dconf.dump && echo dconf-ok"'
 
+echo "### icon theme fix"
+# The upstream dotfiles set HighContrast, which has no index.theme and only a
+# handful of icons. ContrastHigh is the complete high-contrast MATE theme and
+# inherits mate/hicolor, so panel and application menu icons resolve.
+su - alpine -c 'dbus-run-session -- gsettings set org.mate.interface icon-theme ContrastHigh'
+
 echo "### lockscreen keyboard (alpine-mate-better reference)"
 su - alpine -c 'dbus-run-session -- sh -c "gsettings set org.mate.screensaver embedded-keyboard-enabled true && gsettings set org.mate.screensaver embedded-keyboard-command onboard && echo gsettings-ok"'
 

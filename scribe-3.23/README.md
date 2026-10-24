@@ -35,6 +35,14 @@ the touchscreen in the host X server while bridge mode owns it. On stop it
 re-enables touch, unmounts the image, detaches the loop device, disables zram,
 and restarts `lab126_gui`.
 
+## Icon theme
+
+The upstream dotfiles set `org.mate.interface icon-theme=HighContrast`. That
+directory in the MATE icon packages has no `index.theme` and only a couple of
+icons, so GTK resolves every menu icon to a blank placeholder. The build sets
+the icon theme to `ContrastHigh`, which is complete and inherits
+`mate`/`hicolor`.
+
 ## Build
 
 The bridge needs `fbink` and the Kindle glibc loader/libs. They are not
@@ -110,8 +118,9 @@ It appears in the library as **Alpine Linux** and toggles
 - `touch.py` injected tap logged `tap 700 1500`
 - `stop alpine` -> no mounts, no loop devices, no residual processes,
   touch re-enabled, `lab126_gui` running
+- start menu icons render with the `ContrastHigh` icon theme
 
-See `screenshot-final.png` and `launcher-tile.png`.
+See `screenshot-final.png`, `screenshot-menu.png` and `launcher-tile.png`.
 
 ## Credits
 
