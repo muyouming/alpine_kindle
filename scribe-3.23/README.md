@@ -21,14 +21,37 @@ an armv7 Chromium, and 149 is the newest armv7 build. Using 3.24 would make
 
 ## Display bridge
 
-The Scribe's native X server (`:0`) is **8-bit StaticGray**. Chromium 149
-rejects 8-bit visuals, and Xephyr cannot create a 24-bit nested screen when
-the host has no 24-bit visual. This image therefore uses:
+The Scribe's native X screen has an **8-bit StaticGray root/default visual**.
+The firmware config (`/var/local/xorg.conf`) explicitly sets `Depth 8`,
+`Visual "StaticGray"`, driver `mtk` and `FormatEPDC "Y8"`; `/dev/fb0` is
+8 bpp. `xdpyinfo` also exposes a **32-bit TrueColor visual** (`0x4e`), but
+Xephyr 21.1.23 still falls back to the host root depth for requested 16/24/32
+bit screens (tested), so there is no usable nested 24/32-bit screen.
+
+This image therefore uses:
 
 - `Xvfb :1 -screen 0 1860x2480x24`
 - `bridge.py`: `xwd` capture -> grayscale -> `/dev/fb0` -> `fbink -W GC16`
 - `touch.py`: `/dev/input/event3` (`pt_mt`) -> `xdotool` on `:1`
 - `startgui.sh`: Xephyr mode when `:0` is 24/32-bit, bridge mode otherwise
+
+Verified on this unit:
+
+| Probe | Value |
+|---|---|
+| `xwininfo -root -display :0` | 1860x2480, depth 8, StaticGray |
+| `xdpyinfo -display :0` | root depth 8; extra depth-32 TrueColor visual 0x4e; no depth-24 visual |
+| `/var/local/xorg.conf` | `Depth 8`, `Visual "StaticGray"`, `FormatEPDC "Y8"`, driver `mtk` |
+| `/sys/class/graphics/fb0/bits_per_pixel` | 8 |
+| Xephyr requests `x16`, `x24`, `x32` | all log `requested screen depth not supported, setting to match hosts` |
+
+**Color Kindles are different.** FBInk marks ColorSoft (`SeaBreeze`,
+`Bellatrix4`) and Scribe ColorSoft (`Calvados`, `Platcs8`) with
+`hasColorPanel`; Kaleido/CFA color features are 32 bpp. This image targets the
+monochrome Scribe (`Barolo`, model `0x875`). On a 24/32-bit host root,
+`startgui.sh` picks Xephyr and skips the bridge; the bridge constants
+(1860x2480, stride 1872, event3) are Scribe-specific, and the bridge writes
+8-bit grayscale only (it is not a color path).
 
 The upstart job passes the host depth/geometry to `startgui.sh` and disables
 the touchscreen in the host X server while bridge mode owns it. On stop it
