@@ -66,6 +66,23 @@ icons, so GTK resolves every menu icon to a blank placeholder. The build sets
 the icon theme to `ContrastHigh`, which is complete and inherits
 `mate`/`hicolor`.
 
+### Why upstream does not need the bridge
+
+Upstream used Chromium 77. We mounted the 2019 image on this Scribe as a
+control: its Xephyr (Xorg 1.20) also fell back to an **8-bit TrueColor**
+nested screen, and Chromium 77 rendered a local page normally. Chromium 149
+rejects the same 8-bit visual with:
+
+```text
+ERROR:ui/base/x/x11_util.cc:627] Unsupported visual with rgb mask 0x7, 0x38, 0xc0
+```
+
+The bridge is therefore a compatibility layer for modern Chromium dropping
+8-bit visual support, not a workaround for the Scribe lacking any 32-bit
+surface. Stock Xephyr 21.1.23 still cannot use the Scribe's depth-32 TrueColor
+visual for its nested screen (16/24/32 requests all fall back to depth 8),
+so Xvfb + framebuffer is the working path for Chromium 149.
+
 ## Build
 
 The bridge needs `fbink` and the Kindle glibc loader/libs. They are not
